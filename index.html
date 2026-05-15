@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D 地球 - 移动端触屏版</title>
+    
+    <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" />
+    
+    <style>
+        /* 把页面所有多余元素清干净，只留地球 */
+        html, body, #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            /* 禁止页面本身的双指缩放，让Cesium接管触屏手势 */
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* 底部半透明的操作提示 */
+        .touch-tip {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            pointer-events: none;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+    <div class="touch-tip">👆 单指拖动 &nbsp;|&nbsp; 🤏 双指缩放 &nbsp;|&nbsp; 🫴 双指旋转</div>
+
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
+    
+    <script>
+        // 官方公共 Token（学习测试用）
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc3MzMsImlhdCI6MTYyNzg0NTE4MH0.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJHYZxk';
+
+        // 初始化地球，移动端专属配置
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+            terrain: Cesium.Terrain.fromWorldTerrain(),  // 全球地形
+            animation: false,
+            timeline: false,
+            baseLayerPicker: false,
+            fullscreenButton: false,
+            geocoder: false,
+            homeButton: false,
+            sceneModePicker: false,
+            navigationHelpButton: false,
+            // 移动端关键配置
+            requestRenderMode: true,           // 按需渲染，省电省流量
+            maximumRenderTimeChange: Infinity,  // 触屏交互不卡顿
+            scene3DOnly: true,                  // 只显示3D模式，别给我跳回2D
+        });
+
+        // 直接飞到北京天安门，高度10000米，倾斜45度看3D建筑
+        viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(116.397428, 39.904989, 10000),
+            orientation: {
+                heading: Cesium.Math.toRadians(15),   // 稍微侧一点，立体感更强
+                pitch: Cesium.Math.toRadians(-50),    // 向下倾斜50度
+                roll: 0
+            },
+            duration: 1.5  // 1.5秒飞到，不磨叽
+        });
+
+        // 天安门位置加一个大红点（移动端手指粗也能看见）
+        viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(116.397428, 39.904989),
+            point: {
+                pixelSize: 16,
+                color: Cesium.Color.fromCssColorString('#FF4444'),
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 3,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+            },
+            label: {
+                text: '北京·天安门',
+                font: 'bold 18px -apple-system, sans-serif',
+                fillColor: Cesium.Color.WHITE,
+                outlineColor: Cesium.Color.fromCssColorString('#222222'),
+                outlineWidth: 4,
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                pixelOffset: new Cesium.Cartesian2(0, -35)
+            }
+        });
+
+        // 点击任意位置弹经纬度
+        const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+        handler.setInputAction(function(event) {
+            const cartesian = viewer.scene.globe.pick(viewer.camera.getPickRay(event.position), viewer.scene);
+            if (!cartesian) return;
+            
+            const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            const longitude = Cesium.Math.toDegrees(cartographic.longitude).toFixed(6);
+            const latitude = Cesium.Math.toDegrees(cartographic.latitude).toFixed(6);
+
+            alert(`📍 坐标\n经度：${longitude}°\n纬度：${latitude}°`);
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        console.log('✅ 移动端3D地球已就绪！');
+    </script>
+</body>
+</html>
