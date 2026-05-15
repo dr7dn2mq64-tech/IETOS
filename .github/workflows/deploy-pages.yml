@@ -1,0 +1,24 @@
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build site (skip — site is static in repo root)
+        run: echo "No build step — deploying repository root"
+      - uses: actions/configure-pages@v3
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./
+      - uses: actions/deploy-pages@v2
